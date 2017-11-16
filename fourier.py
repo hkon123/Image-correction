@@ -177,7 +177,7 @@ class Fourier(object):
 fn = str(raw_input("File : "))
 im = misc.imread(fn)
 fim = im
-
+print(im)
 fixed, shifts = Fourier().correctHorizontal(im)
 #fixed2, shifts2 = Fourier().correctHorizontal(fixed)
 #fixed3 = Fourier().correctHorizontal(fixed2, removePad = True)
