@@ -1,4 +1,4 @@
-from scipy import misc      # Import misc
+from scipy import misc
 import matplotlib.pyplot as plt
 import numpy as np
 from math import *
@@ -51,8 +51,9 @@ class Fourier(object):
             fixed = np.vstack((fixed, self.shiftLine(image, transformed, i)))
         return fixed
 
-    def correctHorizontal(self, image, pad = False, removePad = False, roll = False):
+    def correctHorizontal(self, image, pad = False, removePad = False, roll = False, linePad = False):
         newImage = self.new(image)
+        shifts = []
         if pad == True:
             newImage = np.lib.pad(newImage,((50,50),(50,50)),'constant', constant_values=(255, 255))
         if removePad == True:
@@ -61,9 +62,23 @@ class Fourier(object):
         transformed = self.trans(newImage)
         for i in range(1,newImage.shape[0]-1):
             shift = self.maxima(self.conMult(np.fft.fft(newImage[i]),np.fft.fft(newImage[i-1])))
+            shifts.append(shift)
+            if linePad == True:
+                newImage[i] = self.addPad(newImage[i], shift)
             newImage[i] = np.roll(newImage[i], shift)
         if roll == True:
             newImage = self.roll(newImage)
+        return newImage, shifts
+
+    def adjustedCorrection(self, image, shifts, pad = False):
+        newImage = self.new(image)
+        if pad == True:
+            newImage = np.lib.pad(newImage,((170,170),(170,170)),'constant', constant_values=(255, 255))
+            for i in range(171,newImage.shape[0]-171):
+                newImage[i] = np.roll(newImage[i], shifts[i-171])
+        else:
+            for i in range(1,newImage.shape[0]-1):
+                newImage[i] = np.roll(newImage[i], shifts[i-1])
         return newImage
 
     def correctVertical(self, image):
@@ -78,6 +93,9 @@ class Fourier(object):
         for i in range(1, image.shape[0]-1):
             new = np.vstack((new, image[i]))
         return new
+
+    def addPad(self, line, pad):
+        return np.lib.pad(line,(pad,pad),'constant', constant_values=(0,0))
 
     def pad(self, image):
         for i in range(image.shape[0]):
@@ -110,18 +128,72 @@ class Fourier(object):
     def roll(self, image):
         return np.roll(image, 12)
 
+    def normalize(self, shifts, dimenshion):
+        for i in range(len(shifts)):
+            if shifts[i]>dimenshion/2:
+                shifts[i] = shifts[i]-dimenshion
+        return shifts
+
+    def anchor(self, shifts1):
+        shifts = []
+        anchorPoints = np.empty((0,2), int)
+        anchor = 57
+        for i in shifts1:
+            shifts.append(i)
+        '''
+        i=0
+        while i< len(shifts)-2:
+            if shifts[i] == shifts[i+1] and shifts[i] == shifts[i+2]:
+                anchor = shifts[i]
+                break
+            i+=1
+        '''
+        i=0
+        while i< len(shifts)-2:
+            if shifts[i] == shifts[i+1] and shifts[i] == shifts[i+2]:
+                anchorPoints = np.append(anchorPoints,np.array([[i,shifts[i]]]), axis = 0)
+                anchorPoints = np.append(anchorPoints,np.array([[i+1,shifts[i+1]]]), axis = 0)
+                anchorPoints = np.append(anchorPoints,np.array([[i+2,shifts[i+1]]]), axis = 0)
+            i+=1
+        for i in anchorPoints[:,0]:
+            shifts[i] = 0
+
+        for i in range(len(shifts)):
+            if shifts[i] == 0:
+                for k in range(i+1,len(shifts)-1):
+                    if shifts[k] ==0:
+                        break
+                    else:
+                        for j in range(0,len(anchorPoints[:,0])):
+                            #print(str(anchorPoints[j,0]) + " and " + str(i))
+                            if anchorPoints[j,0] == i:
+                                shifts[k] = shifts[k] + -1*anchorPoints[j,1]
+                                break
+        return shifts
+
+
+
+
 fn = str(raw_input("File : "))
 im = misc.imread(fn)
 fim = im
 
-fixed = Fourier().correctHorizontal(im, roll = True)
-fixed2 = Fourier().correctHorizontal(im, pad = True)
-fixed3 = Fourier().correctHorizontal(fixed2, removePad = True)
+fixed, shifts = Fourier().correctHorizontal(im)
+#fixed2, shifts2 = Fourier().correctHorizontal(fixed)
+#fixed3 = Fourier().correctHorizontal(fixed2, removePad = True)
+nShifts = Fourier().normalize(shifts, fixed.shape[0])
+#nShifts2 = Fourier().normalize(shifts2, fixed.shape[0])
+Ashifts = Fourier().anchor(nShifts)
+fixed2 = Fourier().adjustedCorrection(im, shifts, pad = True)
+fixed3 = Fourier().adjustedCorrection(im, Ashifts)
 fig, ax = plt.subplots(2,2)
 ax[0,0].imshow(im,cmap=plt.cm.gray)
 ax[0,1].imshow(fixed.real,cmap=plt.cm.gray)
-ax[1,0].imshow(fixed2.real,cmap=plt.cm.gray)
+#ax[1,0].imshow(fixed2.real,cmap=plt.cm.gray)
 ax[1,1].imshow(fixed3.real,cmap=plt.cm.gray)
+ax[1,0].scatter(Ashifts, np.arange(0,len(Ashifts),1)[::-1])
+#ax[0,1].scatter(nShifts, np.arange(0,len(nShifts),1)[::-1])
+#ax[1,1].scatter(Fourier().normalize(shifts2, fixed.shape[0]), np.arange(0,len(shifts2),1))
 plt.show()
 #for i in range(0,trans.shape[0]):
 #    prod = Fourier().conMult(trans[i],trans[i+1])
