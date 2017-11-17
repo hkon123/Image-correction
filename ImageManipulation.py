@@ -53,17 +53,8 @@ class Manipulation(object):
         value = None
         shifts = []
         anchorPoints = np.empty((0,2), int)
-        anchor = 57
         for i in shifts1:
             shifts.append(i)
-        '''
-        i=0
-        while i< len(shifts)-2:
-            if shifts[i] == shifts[i+1] and shifts[i] == shifts[i+2]:
-                anchor = shifts[i]
-                break
-            i+=1
-        '''
         i=0
         while i< len(shifts)-2:
             if shifts[i] == shifts[i+1] and shifts[i] == shifts[i+2]:
@@ -81,7 +72,7 @@ class Manipulation(object):
                     if anchorPoints[h,0] == i:
                         test+=1
                 if test == 0:
-                    print(str(i) + " and " + str(shifts[i]))
+
                     continue
                 for k in range(i+1,len(shifts)-1):
                     test = 0
@@ -98,10 +89,9 @@ class Manipulation(object):
                                     value = True
                                 shifts[k] = shifts[k] + -1*anchorPoints[j,1]
                                 if value == True and shifts[k]>1:
-                                    shifts[k] = shifts[k] + 2
+                                    shifts[k] = shifts[k]
                                 if value == True and shifts[k]<1:
-                                    shifts[k] = shifts[k] 
-                                print(str(k) + " and " + str(shifts[k]) + " and " + str(value))
+                                    shifts[k] = shifts[k]
                                 value = None
                                 break
         return shifts
