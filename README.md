@@ -8,4 +8,4 @@ init.py
 launch.py
 fourier2.py
 imageCorrect.py
-ImaneManipulation.py
+ImageManipulation.py
