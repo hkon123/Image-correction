@@ -27,10 +27,10 @@ class LineDistort(object):
     #then uses the maxima() method to find the peak
     #this is now the shift
     #it then returns the shifted ith line of the input image
-    def shiftLine(self, image, transformed, i):
+    def shiftLine(self, transformed1, transformed2):
         #transformed = self.trans(image)
-        shift = self.maxima(Fourier().conMult(transformed[i],transformed[i-1]))
-        return np.roll(image[i], shift)
+        shift = self.maxima(Fourier().conMult(transformed1,transformed2))
+        return shift
 
     '''
     def correct(self, image):
@@ -53,15 +53,15 @@ class LineDistort(object):
     def correctHorizontal(self, image, pad = False, removePad = False, roll = False, linePad = False):
         newImage = self.new(image) #creates a new identical image so the original isnt changed
         shifts = []
-        if pad != False:   #adds padding using np.lib.pad
-            newImage = np.lib.pad(newImage,((pad,pad),(pad,pad)),'constant', constant_values=(255, 255))
+        if pad != False:   #adds padding using the Manipulation().addPad method
+            newImage = Manipulation().addPad(newImage,pad)
         if removePad == True: #removes padding using the Manipulation().removePad2 method
             #newImage = self.removePad(newImage)
             newImage = Manipulation().removePad2(newImage)
         transformed = Fourier().trans(newImage) #creates a fourier transform of the original image
         #loop that loops through all the lines in the image and finds the shifts and applies them to the image
         for i in range(1,newImage.shape[0]-1):
-            shift = self.maxima(Fourier().conMult(np.fft.fft(newImage[i]),np.fft.fft(newImage[i-1])))
+            shift = self.shiftLine(np.fft.fft(newImage[i]),np.fft.fft(newImage[i-1]))
             shifts.append(shift)
             if linePad == True: #adds linepadding, does not work
                 newImage[i] = Manipulation().addPad(newImage[i], shift)
@@ -79,7 +79,7 @@ class LineDistort(object):
     def adjustedCorrection(self, image, shifts, pad = False):
         newImage = self.new(image) #creates a new identical image so the original isnt changed
         if pad == True: #adds padding around the image
-            newImage = np.lib.pad(newImage,((pad,pad),(pad,pad)),'constant', constant_values=(255, 255))
+            newImage =  Manipulation().addPad(newImage,pad)
             for i in range(pad+1,newImage.shape[0]-pad+1): #shifts the lines of the image using the given shifts
                 newImage[i] = np.roll(newImage[i], shifts[i-pad+1])
         else:
